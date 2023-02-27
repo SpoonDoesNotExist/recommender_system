@@ -1,16 +1,19 @@
-import logging
-
 import numpy as np
 import pandas as pd
 
+from app import app
 
 class MyRecModel:
 
     def __init__(self):
         self.idx_to_movie_id = None
         self.movie_id_to_idx = None
+        self._movie_name_to_movie_id = None
+        self._movie_id_to_movie_name = None
         self.ratings = None
         self.users_similarities = None
+
+        app.logger.info("i'm logging INIT results..............")
 
     def predict(self, reviews, top_m):
         user_reviews = self._create_user_review(reviews)
@@ -27,6 +30,12 @@ class MyRecModel:
 
         logging.info("i'm logging evaluate results..............")
 
+    def movie_name_to_movie_id(self, movie_name):
+        return self._movie_name_to_movie_id[movie_name]
+
+    def movie_id_to_movie_name(self, movie_id):
+        return self._movie_id_to_movie_name[movie_id]
+
     def train(self, dataset_path):
         self._load_dataset(dataset_path)
         ratings = pd.pivot_table(
@@ -41,12 +50,15 @@ class MyRecModel:
 
         self.users_similarities = self._get_similarities(self.ratings)
 
-        logging.info("i'm logging train results..............")
+        app.logger.info("i'm logging train results..............")
 
     def warmup(self):
         raise NotImplementedError()
 
-    def find_similar(self):
+    def save(self):
+        raise NotImplementedError()
+
+    def find_similar(self, movie_id, top_k):
         raise NotImplementedError()
 
     def _create_user_review(self, reviews):
@@ -57,7 +69,7 @@ class MyRecModel:
         return self._normalize(user_reviews)
 
     def _load_dataset(self, dataset_path):
-        rating_path = dataset_path + '/ratings.dat'
+        rating_path = dataset_path + '/ratings_train.dat'
         self.df_rating = pd.read_csv(
             rating_path, sep='::', header=None,
             names=['user_id', 'movie_id', 'rating', 'timestamp']
