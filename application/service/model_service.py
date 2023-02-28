@@ -1,5 +1,4 @@
-from config import DATASET_BASE_PATH
-from model.recommendation_model import MyRecModel
+from application.model.recommendation_model import MyRecModel
 
 
 class ModelService:

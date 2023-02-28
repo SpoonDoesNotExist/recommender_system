@@ -1,8 +1,8 @@
 from flask import make_response
 
-from app import app
-from config import RETURN_LOG_ROWS
-from service.log_service import LogService
+from application.app import app
+from application.config import RETURN_LOG_ROWS
+from application.service.log_service import LogService
 
 log_service = LogService()
 

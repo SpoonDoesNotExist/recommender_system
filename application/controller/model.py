@@ -1,7 +1,7 @@
 from flask import request, jsonify
 
-from app import app
-from service.model_service import ModelService
+from application.app import app
+from application.service.model_service import ModelService
 
 model_service = ModelService()
 

@@ -5,4 +5,4 @@ services:
     ports:
       - "8415:5000"
     volumes:
-      - .:/app/data
+      - .:/application/data

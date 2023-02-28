@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from app import app
+from application.app import app
 
 class MyRecModel:
 

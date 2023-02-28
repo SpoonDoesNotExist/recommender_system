@@ -3,7 +3,7 @@ from logging.handlers import RotatingFileHandler
 from flask import Flask
 import logging
 
-from config import LOGGING_FILE_PATH
+from application.config import LOGGING_FILE_PATH
 
 app = Flask(__name__)
 
@@ -19,4 +19,4 @@ default_logger.setLevel(logging.INFO)
 
 app.logger.addHandler(handler)
 
-import controller
+import application.controller

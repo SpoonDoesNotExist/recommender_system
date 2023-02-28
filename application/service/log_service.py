@@ -1,4 +1,4 @@
-from config import LOGGING_FILE_PATH
+from application.config import LOGGING_FILE_PATH
 
 
 class LogService:
