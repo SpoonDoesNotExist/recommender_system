@@ -44,6 +44,9 @@ class My_Rec_Model:
     # ids = self._get_movie_ids(indexes)
     # return self.df_movie[self.df_movie.movie_id.isin(ids)]
 
+    def evaluate(self, dataset_path):
+        pass
+
     def train(self, dataset_path, epochs=20, regularization_lambda=0.01, latent_factors=50):
         self.logger.info(f"Start training...")
 
