@@ -3,7 +3,7 @@ from flask import request, jsonify
 from application.app import app
 from application.service.model_service import ModelService
 
-model_service = ModelService()
+model_service = ModelService(app)
 
 
 @app.route('/api/reload', methods=['POST'])
@@ -17,7 +17,7 @@ def similar():
     args = request.args
 
     movie_name = args.get('movie')
-    top_m = args.get('top_m')
+    top_m = int(args.get('top_m'))
 
     top_similar_movies = model_service.get_similar_movies(movie_name, top_m)
 

@@ -4,7 +4,7 @@ from application.app import app
 from application.config import RETURN_LOG_ROWS
 from application.service.log_service import LogService
 
-log_service = LogService()
+log_service = LogService(app)
 
 
 @app.route('/api/log', methods=['GET'])

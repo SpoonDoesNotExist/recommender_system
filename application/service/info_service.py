@@ -1,6 +1,6 @@
 class InfoService:
-    def __init__(self):
-        pass
+    def __init__(self, app):
+        self.app = app
 
     def get_credentials(self):
         return {
