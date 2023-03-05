@@ -1,19 +1,11 @@
-# Рекомендательная система
+# Recommender system
 *ready to production*
 
-Основана на колаборативной фильтрации
+Based on Collaborative Filtering with **Alternating least squares**
 
 ---
 
-### Датасет: MovieLens
-Основана на колаборативной фильтрации
-
----
-
-### Docker
-
----
-
-### Installation
-
----
+### Dataset: MovieLens
+### Docker:
+### Installation:
+### CLI:
