@@ -23,7 +23,7 @@ jobs:
         name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${DOCKER_NAME}
+          username: $DOCKER_NAME
           password: ${{ secrets.DOCKER_TOKEN }}
       -
         name: Set up Docker Buildx
@@ -35,4 +35,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${DOCKER_NAME}/recommender_system:latest
+          tags: $DOCKER_NAME/recommender_system:latest
