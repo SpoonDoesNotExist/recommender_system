@@ -9,9 +9,6 @@ on:
 
   workflow_dispatch:
 
-env:
-  DOCKER_NAME: ${{ secrets.DOCKER_NAME }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
