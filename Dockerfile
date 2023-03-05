@@ -1,8 +1,9 @@
-FROM --platform=$BUILDPLATFORM python:3.10-alpine AS builder
+FROM python:3.10
 
 WORKDIR /app
 
 COPY requirements.txt /app
+RUN python -m pip install --upgrade pip
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install -r requirements.txt
 
