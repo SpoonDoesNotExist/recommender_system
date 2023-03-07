@@ -45,20 +45,24 @@ class My_Rec_Model:
     # return self.df_movie[self.df_movie.movie_id.isin(ids)]
 
     def evaluate(self, dataset_path):
-        pass
+        df_rating_test = pd.read_csv(
+            dataset_path, sep='::', header=None,
+            names=['user_id', 'movie_id', 'rating', 'timestamp']
+        )
+        ratings = self._create_ratings(df_rating_test)
 
-    def train(self, dataset_path, epochs=20, regularization_lambda=0.01, latent_factors=50):
+    def train(self, dataset_path, epochs=10, regularization_lambda=0.01, n_latent_factors=100):
         self.logger.info(f"Start training...")
 
         self._load_dataset(dataset_path)
 
-        ratings = self._create_ratings()
-        self.user_factors, self.item_factors = self._create_factors(latent_factors)
+        ratings = self._create_ratings(self.df_rating)
+        self.user_factors, self.item_factors = self._create_factors(n_latent_factors)
 
         train_loss_history = []
         for _ in range(epochs):
-            self.user_factors = self._train_step(self.item_factors, ratings, latent_factors, regularization_lambda)
-            self.item_factors = self._train_step(self.user_factors, ratings.T, latent_factors, regularization_lambda)
+            self.user_factors = self._train_step(self.item_factors, ratings, n_latent_factors, regularization_lambda)
+            self.item_factors = self._train_step(self.user_factors, ratings.T, n_latent_factors, regularization_lambda)
 
             predictions = self.predict_ratings()
             train_loss_history.append(
@@ -70,15 +74,19 @@ class My_Rec_Model:
         return train_loss_history
 
     def predict_ratings(self):
-        return np.dot(
+        return (np.dot(
             self.user_factors,
             self.item_factors.T
-        )
+        ) * self.user_ratings_mean.reshape(-1, 1)) + self.user_ratings_mean.reshape(-1, 1)
 
-    def _create_ratings(self):
+    def _create_ratings(self, df_rating):
         ratings = np.zeros((self.n_users, self.n_items))
-        for row in self.df_rating.itertuples(index=False):
+        for row in df_rating.itertuples(index=False):
             ratings[row.user_id, row.movie_id] = row.rating
+        ratings[ratings == 0] = np.nan
+        self.user_ratings_mean = np.nanmean(ratings, axis=1)
+        ratings = (ratings - self.user_ratings_mean.reshape(-1, 1)) / self.user_ratings_mean.reshape(-1, 1)
+        # ratings[np.isnan(ratings)] = 0
         return ratings
 
     def _get_top_k_similar_movies(self, movie_similarities, top_k):
@@ -92,11 +100,11 @@ class My_Rec_Model:
         movie_names = self.df_movie[self.df_movie.movie_id.isin(movie_ids)].title.tolist()
         return movie_names, similarity_values
 
-    def _train_step(self, fix_matrix, ratings, latent_factors, regularization_lambda):
+    def _train_step(self, fix_matrix, ratings, n_latent_factors, regularization_lambda):
         return np.dot(
             np.dot(ratings, fix_matrix),
             np.linalg.inv(
-                np.dot(fix_matrix.T, fix_matrix) + np.eye(latent_factors) * regularization_lambda
+                np.dot(fix_matrix.T, fix_matrix) + np.eye(n_latent_factors) * regularization_lambda
             )
         )
 
@@ -161,9 +169,8 @@ class My_Rec_Model:
 
     @staticmethod
     def compute_rmse(y_true, y_pred):
-        mask = np.nonzero(y_true)
         rmse = np.sqrt(
-            np.mean((y_true[mask] - y_pred[mask]) ** 2)
+            np.mean((y_true - y_pred) ** 2)
         )
         return rmse
 
