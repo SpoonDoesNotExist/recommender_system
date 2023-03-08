@@ -67,7 +67,8 @@ class My_Rec_Model:
     def evaluate(self, dataset_path):
         df_rating_test = pd.read_csv(
             dataset_path, sep='::', header=None,
-            names=['user_id', 'movie_id', 'rating', 'timestamp']
+            names=['user_id', 'movie_id', 'rating', 'timestamp'],
+            engine='python'
         )
         ratings = self._create_ratings(df_rating_test)
 
@@ -109,7 +110,7 @@ class My_Rec_Model:
         return (np.dot(
             user_factors,
             item_factors.T
-        ) * self.user_ratings_mean.reshape(-1, 1)) + self.user_ratings_mean.reshape(-1, 1)
+        ) * self.user_ratings_range.reshape(-1, 1)) + self.user_ratings_mean.reshape(-1, 1)
 
     def get_train_method(self, method_name):
         train_method = self.train_methods.get(method_name)
@@ -122,9 +123,11 @@ class My_Rec_Model:
         for row in df_rating.itertuples(index=False):
             ratings[row.user_id, row.movie_id] = row.rating
         ratings[ratings == 0] = np.nan
+
         self.user_ratings_mean = np.nanmean(ratings, axis=1)
-        ratings = (ratings - self.user_ratings_mean.reshape(-1, 1)) / self.user_ratings_mean.reshape(-1, 1)
-        # ratings[np.isnan(ratings)] = 0
+        self.user_ratings_range = np.nanmax(ratings, axis=1) - np.nanmin(ratings, axis=1)
+
+        ratings = (ratings - self.user_ratings_mean.reshape(-1, 1)) / self.user_ratings_range.reshape(-1, 1)
         return ratings
 
     def _get_top_k_recommendations(self, movie_scoers, top_k):
@@ -138,17 +141,6 @@ class My_Rec_Model:
         ))
         movie_names = self.df_movie[self.df_movie.movie_id.isin(movie_ids)].title.tolist()
         return movie_names, similarity_values
-
-    # def _get_top_k_similar_movies(self, movie_similarities, top_k):
-    #     top_similarities = np.argpartition(movie_similarities, -top_k)[-top_k:]
-    #     similarity_values = movie_similarities[top_similarities].tolist()
-    #
-    #     movie_ids = list(map(
-    #         lambda x: self.movie_id_map_inverse[x],
-    #         top_similarities
-    #     ))
-    #     movie_names = self.df_movie[self.df_movie.movie_id.isin(movie_ids)].title.tolist()
-    #     return movie_names, similarity_values
 
     def _load_dataset(self, dataset_path):
         rating_path = dataset_path + '/ratings_train.dat'
@@ -170,12 +162,6 @@ class My_Rec_Model:
 
         self.df_rating.movie_id = self.df_rating.movie_id.apply(lambda x: self.movie_id_map[x])
         self.df_rating.user_id = self.df_rating.user_id.apply(lambda x: self.user_id_map[x])
-
-        # user_path = dataset_path + '/users.dat'
-        # self.df_user = pd.read_csv(
-        #     user_path, sep='::', header=None,
-        #     names=['user_id', 'gender', 'age', 'occupation', 'zipcode']
-        # )
 
         movie_path = dataset_path + '/movies.dat'
         self.df_movie = pd.read_csv(
@@ -209,11 +195,9 @@ class My_Rec_Model:
 
     @staticmethod
     def compute_rmse(y_true, y_pred):
-        y_true[y_true == 0] = np.nan
-        rmse = np.sqrt(
+        return np.sqrt(
             np.nanmean((y_true - y_pred) ** 2)
         )
-        return rmse
 
     @staticmethod
     def sort_recommendatdions(movie_names, similarity_values):
