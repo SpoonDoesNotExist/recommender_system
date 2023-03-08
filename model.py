@@ -4,6 +4,8 @@ from application.config import DATASET_BASE_PATH
 from application.recommendation_model import My_Rec_Model
 
 recsys_model = My_Rec_Model()
+recsys_model.warmup()
+
 cli_app = typer.Typer()
 
 
@@ -25,6 +27,14 @@ def evaluate(dataset=DATASET_BASE_PATH):
 @cli_app.command()
 def find_similar(movie_id, N):
     movie_names, similarity_values = recsys_model.find_similar(movie_id, N)
+    return movie_names, similarity_values
+
+
+@cli_app.command()
+def predict(user_id, top_m):
+    top_m = int(top_m)
+    movie_names, similarity_values = recsys_model.predict(user_id, top_m)
+    print(movie_names, similarity_values)
     return movie_names, similarity_values
 
 
