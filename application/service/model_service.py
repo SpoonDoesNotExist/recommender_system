@@ -8,7 +8,15 @@ class ModelService:
         self.model = My_Rec_Model(
             logger=self.app.logger
         )
-        self.model.train(dataset_path=DATASET_BASE_PATH)
+
+        try:
+            self.model.warmup()
+        except:
+            kwargs_svd = {
+                'method_name': 'svd',
+                'n_latent_factors': 40
+            }
+            self.model.train(dataset_path=DATASET_BASE_PATH, **kwargs_svd)
 
     def warmup_model(self):
         self.model.warmup()
@@ -27,21 +35,9 @@ class ModelService:
             recommendations
         ))
 
-    def get_recommendations(self, reviews, top_k):
-        movie_ratings = reviews[1]
-        movie_ids = list(map(
-            self.model.movie_name_to_movie_id,
-            reviews[0]
-        ))
-
-        recommendations = self.model.predict(
-            (movie_ids, movie_ratings),
-            top_k
-        )
+    def get_recommendations(self, user_id, top_k):
+        recommendations = self.model.predict(user_id, top_k)
         recommendation_ratings = recommendations[1]
-        recommendation_names = list(map(
-            self.model.movie_id_to_movie_name,
-            recommendations[0]
-        ))
+        recommendation_names = recommendations[0]
 
         return recommendation_names, recommendation_ratings
