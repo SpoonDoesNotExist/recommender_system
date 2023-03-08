@@ -4,45 +4,65 @@ import pickle
 import logging
 
 from application.config import SAVE_PATH
+from application.learning_algorithms.als_learning import ALSLearning
+from application.learning_algorithms.svd_learning import SVDLearning
+from application.utils import timeit
 
 
 class My_Rec_Model:
     def __init__(self, logger=None):
+
+        self.train_methods = {
+            'svd': self.train_svd,
+            'als': self.train_als
+        }
+
         if logger is None:
             self.logger = logging.getLogger()
         else:
             self.logger = logger
 
     def warmup(self, checkpoint_path=SAVE_PATH):
-        with open(checkpoint_path + 'recsys_checkpoint.pickle', 'rb') as f:
-            self = pickle.load(f)
+        try:
+            with open(checkpoint_path + 'recsys_checkpoint.pickle', 'rb') as f:
+                self.__dict__.update(pickle.load(f).__dict__)
+        except:
+            raise FileNotFoundError(f'No checkpoint for model warmup')
 
         self.logger.info(f"Model warmed up from {checkpoint_path}")
         return
 
+    @timeit
     def find_similar(self, movie_id, top_k):
         movie_index = self.movie_id_map[movie_id]
 
         movie_similarities = np.dot(self.item_factors[movie_index], self.item_factors.T)
         movie_similarities[movie_index] = -np.inf  # minimize similarity with itself
 
-        movie_names, similarity_values = self._get_top_k_similar_movies(movie_similarities, top_k)
+        movie_names, similarity_values = self._get_top_k_recommendations(movie_similarities, top_k)
         movie_names, similarity_values = self.sort_recommendatdions(movie_names, similarity_values)
 
         self.logger.info(f"Found {top_k} similar movies: {movie_names}")
         return movie_names, similarity_values
 
-    def predict(self, reviews, top_m):
-        pass
+    @timeit
+    def predict(self, user_id, top_m):
+        user_index = self.user_id_map[user_id]
 
-    # user_reviews = self._create_user_review(reviews)
-    # user_similarities = np.matmul(user_reviews, self.ratings.T)
-    # user_similarities = np.expand_dims(user_similarities, axis=0)
-    # user_scores = self._get_scores(self.ratings, user_similarities)[0]
-    #
-    # scores, indexes = self._get_top_k(user_scores, top_m)
-    # ids = self._get_movie_ids(indexes)
-    # return self.df_movie[self.df_movie.movie_id.isin(ids)]
+        ratings = (np.dot(
+            self.user_factors[user_index],
+            self.item_factors.T
+        ) * self.user_ratings_mean[user_index]) + self.user_ratings_mean[user_index]
+
+        # ratings = self._predict_ratings(
+        #     np.expand_dims(self.user_factors[user_index], axis=0),
+        #     self.item_factors
+        # )
+        print(ratings.shape)
+        movie_names, similarity_values = self._get_top_k_recommendations(ratings, top_m)
+        movie_names, similarity_values = self.sort_recommendatdions(movie_names, similarity_values)
+        self.logger.info(f"Recommended {top_m} movies: {movie_names}")
+        return movie_names, similarity_values
 
     def evaluate(self, dataset_path):
         df_rating_test = pd.read_csv(
@@ -51,33 +71,51 @@ class My_Rec_Model:
         )
         ratings = self._create_ratings(df_rating_test)
 
-    def train(self, dataset_path, epochs=10, regularization_lambda=0.01, n_latent_factors=100):
-        self.logger.info(f"Start training...")
-
+    def train(self, dataset_path, method_name, **kwargs):
         self._load_dataset(dataset_path)
-
         ratings = self._create_ratings(self.df_rating)
-        self.user_factors, self.item_factors = self._create_factors(n_latent_factors)
 
-        train_loss_history = []
-        for _ in range(epochs):
-            self.user_factors = self._train_step(self.item_factors, ratings, n_latent_factors, regularization_lambda)
-            self.item_factors = self._train_step(self.user_factors, ratings.T, n_latent_factors, regularization_lambda)
+        train_method = self.get_train_method(method_name)
 
-            predictions = self.predict_ratings()
-            train_loss_history.append(
-                self.compute_rmse(ratings, predictions)
-            )
+        self.user_factors, self.item_factors, self.train_loss_history = train_method(ratings, **kwargs)
 
         self._save(SAVE_PATH)
-        self.logger.info(f"Train finished. RMSE: {train_loss_history}")
-        return train_loss_history
+        self.logger.info(f"Train finished. RMSE: {self.train_loss_history}")
+
+    def train_svd(self, ratings, n_latent_factors=40):
+        self.logger.info(f"Start training (SVD)...")
+        learning_method = SVDLearning(
+            metric_function=self.compute_rmse,
+            predict_ratings=self._predict_ratings,
+            n_latent_factors=n_latent_factors
+        )
+        return learning_method.fit(ratings)
+
+    def train_als(self, ratings, epochs=10, regularization_lambda=0.01, n_latent_factors=40):
+        self.logger.info(f"Start training (ALS)...")
+        learning_method = ALSLearning(
+            metric_function=self.compute_rmse,
+            predict_ratings=self._predict_ratings,
+            epochs=epochs,
+            regularization_lambda=regularization_lambda,
+            n_latent_factors=n_latent_factors
+        )
+        return learning_method.fit(ratings)
 
     def predict_ratings(self):
+        return self._predict_ratings(self.user_factors, self.item_factors)
+
+    def _predict_ratings(self, user_factors, item_factors):
         return (np.dot(
-            self.user_factors,
-            self.item_factors.T
+            user_factors,
+            item_factors.T
         ) * self.user_ratings_mean.reshape(-1, 1)) + self.user_ratings_mean.reshape(-1, 1)
+
+    def get_train_method(self, method_name):
+        train_method = self.train_methods.get(method_name)
+        if train_method is None:
+            raise KeyError(f'No such learning method: {method_name}')
+        return train_method
 
     def _create_ratings(self, df_rating):
         ratings = np.zeros((self.n_users, self.n_items))
@@ -89,30 +127,35 @@ class My_Rec_Model:
         # ratings[np.isnan(ratings)] = 0
         return ratings
 
-    def _get_top_k_similar_movies(self, movie_similarities, top_k):
-        top_similarities = np.argpartition(movie_similarities, -top_k)[-top_k:]
-        similarity_values = movie_similarities[top_similarities].tolist()
-
+    def _get_top_k_recommendations(self, movie_scoers, top_k):
+        print('recoms////')
+        top_recommendations = np.argpartition(movie_scoers, -top_k)[-top_k:]
+        similarity_values = movie_scoers[top_recommendations].tolist()
+        print('recoms//// END')
         movie_ids = list(map(
             lambda x: self.movie_id_map_inverse[x],
-            top_similarities
+            top_recommendations
         ))
         movie_names = self.df_movie[self.df_movie.movie_id.isin(movie_ids)].title.tolist()
         return movie_names, similarity_values
 
-    def _train_step(self, fix_matrix, ratings, n_latent_factors, regularization_lambda):
-        return np.dot(
-            np.dot(ratings, fix_matrix),
-            np.linalg.inv(
-                np.dot(fix_matrix.T, fix_matrix) + np.eye(n_latent_factors) * regularization_lambda
-            )
-        )
+    # def _get_top_k_similar_movies(self, movie_similarities, top_k):
+    #     top_similarities = np.argpartition(movie_similarities, -top_k)[-top_k:]
+    #     similarity_values = movie_similarities[top_similarities].tolist()
+    #
+    #     movie_ids = list(map(
+    #         lambda x: self.movie_id_map_inverse[x],
+    #         top_similarities
+    #     ))
+    #     movie_names = self.df_movie[self.df_movie.movie_id.isin(movie_ids)].title.tolist()
+    #     return movie_names, similarity_values
 
     def _load_dataset(self, dataset_path):
         rating_path = dataset_path + '/ratings_train.dat'
         self.df_rating = pd.read_csv(
             rating_path, sep='::', header=None,
-            names=['user_id', 'movie_id', 'rating', 'timestamp']
+            names=['user_id', 'movie_id', 'rating', 'timestamp'],
+            engine='python'
         )
         self.df_rating.movie_id = self.df_rating.movie_id.apply(lambda x: f'mid-{x}')
         self.df_rating.user_id = self.df_rating.user_id.apply(lambda x: f'uid-{x}')
@@ -138,8 +181,10 @@ class My_Rec_Model:
         self.df_movie = pd.read_csv(
             movie_path, sep='::', header=None,
             names=['movie_id', 'title', 'genre'],
-            encoding='windows-1251'
+            encoding='windows-1251',
+            engine='python'
         )
+        self.df_movie['title'] = self.df_movie.title.str[:-7]
         self.df_movie.movie_id = self.df_movie.movie_id.apply(lambda x: f'mid-{x}')
 
         self._movie_name_to_id = {r.title: r.movie_id for _, r in self.df_movie.iterrows()}
@@ -150,11 +195,6 @@ class My_Rec_Model:
 
     def movie_id_to_name(self, id):
         return self._movie_id_to_name[id]
-
-    def _create_factors(self, num_factors):
-        user_factors = np.random.random((self.n_users, num_factors))
-        item_factors = np.random.random((self.n_items, num_factors))
-        return user_factors, item_factors
 
     def _save(self, save_path):
         with open(save_path + 'recsys_checkpoint.pickle', 'wb') as f:
@@ -169,8 +209,9 @@ class My_Rec_Model:
 
     @staticmethod
     def compute_rmse(y_true, y_pred):
+        y_true[y_true == 0] = np.nan
         rmse = np.sqrt(
-            np.mean((y_true - y_pred) ** 2)
+            np.nanmean((y_true - y_pred) ** 2)
         )
         return rmse
 
