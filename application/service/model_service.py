@@ -36,8 +36,5 @@ class ModelService:
         ))
 
     def get_recommendations(self, user_id, top_k):
-        recommendations = self.model.predict(user_id, top_k)
-        recommendation_ratings = recommendations[1]
-        recommendation_names = recommendations[0]
-
-        return recommendation_names, recommendation_ratings
+        movie_names, similarity_values = self.model.predict(user_id, top_k)
+        return movie_names, similarity_values
