@@ -17,7 +17,7 @@ def similar():
     args = request.args
 
     movie_name = args.get('movie')
-    top_m = int(args.get('top_m'))
+    top_m = args.get('top_m', type=int)
 
     top_similar_movies = model_service.get_similar_movies(movie_name, top_m)
 
@@ -27,11 +27,10 @@ def similar():
 @app.route('/api/predict', methods=['POST'])
 def predict():
     args = request.args
-    body = request.get_json()
 
-    top_m = args.get('top_m')
-    reviews = body['reviews']
+    top_m = args.get('top_m', type=int)
+    user_id = args.get('user_id')
 
-    recommendations = model_service.get_recommendations(reviews, top_m)
+    recommendations = model_service.get_recommendations(user_id, top_m)
 
     return jsonify(recommendations)
