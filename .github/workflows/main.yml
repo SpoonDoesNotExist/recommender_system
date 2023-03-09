@@ -30,7 +30,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_NAME }}/recommender_system:latest
   update:
-    - needs: build
+    - needs: [ build ]
     - steps:
         - name: Up latest docker image
           run: |
