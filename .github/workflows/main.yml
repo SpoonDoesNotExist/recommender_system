@@ -29,9 +29,6 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_NAME }}/recommender_system:latest
-  update:
-    - needs: [ build ]
-    - steps:
-        - name: Up latest docker image
-          run: |
-            curl --silent --show-error --fail -X POST ${{ secrets.DEPLOYMENT_SERVER }}
+      - name: Up latest docker image
+        run: |
+          curl --silent --show-error --fail -X POST ${{ secrets.DEPLOYMENT_SERVER }}
