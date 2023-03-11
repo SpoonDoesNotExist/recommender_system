@@ -12,5 +12,4 @@ COPY . /app
 RUN mkdir -p /app/application/data
 
 EXPOSE 5000
-ENTRYPOINT ["python3"]
-CMD ["run.py"]
+CMD ["python3", "run.py"]
