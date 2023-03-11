@@ -7,7 +7,7 @@ from application.config import LOGGING_FILE_PATH
 
 app = Flask(__name__)
 
-logfile = open(LOGGING_FILE_PATH, 'a+')
+logfile = open(LOGGING_FILE_PATH, 'w')
 logfile.close()
 handler = RotatingFileHandler(LOGGING_FILE_PATH)
 formatter = logging.Formatter(
