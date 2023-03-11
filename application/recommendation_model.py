@@ -95,13 +95,13 @@ class My_Rec_Model:
 
         self.user_factors, self.item_factors, self.train_loss_history = train_method(ratings, **kwargs)
 
+        self.evaluate(dataset_path=dataset_path + '/ratings_train.dat')
         self._save(SAVE_PATH)
-        self.logger.info(f"Train finished. RMSE: {self.train_loss_history}")
+        self.logger.info(f"Train finished.")
 
     def train_svd(self, ratings, n_latent_factors=40):
         self.logger.info(f"Start training (SVD)...")
         learning_method = SVDLearning(
-            metric_function=self.compute_rmse,
             predict_ratings=self._predict_ratings,
             n_latent_factors=n_latent_factors
         )
@@ -110,7 +110,6 @@ class My_Rec_Model:
     def train_als(self, ratings, epochs=10, regularization_lambda=0.01, n_latent_factors=40):
         self.logger.info(f"Start training (ALS)...")
         learning_method = ALSLearning(
-            metric_function=self.compute_rmse,
             predict_ratings=self._predict_ratings,
             epochs=epochs,
             regularization_lambda=regularization_lambda,
