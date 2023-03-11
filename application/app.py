@@ -7,6 +7,8 @@ from application.config import LOGGING_FILE_PATH
 
 app = Flask(__name__)
 
+logfile = open(LOGGING_FILE_PATH, 'a+')
+logfile.close()
 handler = RotatingFileHandler(LOGGING_FILE_PATH)
 formatter = logging.Formatter(
     fmt='>>> %(asctime)s %(levelname)-8s %(message)s',
