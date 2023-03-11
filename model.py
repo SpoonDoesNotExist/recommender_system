@@ -25,8 +25,10 @@ def evaluate(dataset=DATASET_BASE_PATH):
 
 
 @cli_app.command()
-def find_similar(movie_id, N):
-    movie_names, similarity_values = recsys_model.find_similar(movie_id, N)
+def find_similar(movie_name, top_m):
+    top_m = int(top_m)
+    movie_id = recsys_model.movie_name_to_id(movie_name)
+    movie_names, similarity_values = recsys_model.find_similar(movie_id, top_m)
     return movie_names, similarity_values
 
 

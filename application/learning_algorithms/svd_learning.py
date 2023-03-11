@@ -2,8 +2,7 @@ import numpy as np
 
 
 class SVDLearning:
-    def __init__(self, metric_function, predict_ratings, n_latent_factors):
-        self.metric_function = metric_function
+    def __init__(self, predict_ratings, n_latent_factors):
         self.predict_ratings = predict_ratings
         self.n_latent_factors = n_latent_factors
 
@@ -18,6 +17,4 @@ class SVDLearning:
         user_factors = np.dot(U, sigma)
         item_factors = V
 
-        predictions = self.predict_ratings(user_factors, item_factors)
-        train_loss_history = [self.metric_function(ratings, predictions)]
-        return user_factors, item_factors, train_loss_history
+        return user_factors, item_factors
