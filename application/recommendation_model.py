@@ -93,7 +93,7 @@ class My_Rec_Model:
 
         train_method = self.get_train_method(method_name)
 
-        self.user_factors, self.item_factors, self.train_loss_history = train_method(ratings, **kwargs)
+        self.user_factors, self.item_factors = train_method(ratings, **kwargs)
 
         self.evaluate(dataset_path=dataset_path + '/ratings_train.dat')
         self._save(SAVE_PATH)
