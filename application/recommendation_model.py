@@ -70,7 +70,22 @@ class My_Rec_Model:
             names=['user_id', 'movie_id', 'rating', 'timestamp'],
             engine='python'
         )
-        ratings = self._create_ratings(df_rating_test)
+        df_rating_test.movie_id = df_rating_test.movie_id.apply(lambda x: f'mid-{x}')
+        df_rating_test.user_id = df_rating_test.user_id.apply(lambda x: f'uid-{x}')
+
+        df_rating_test['user_id_2'] = df_rating_test.user_id.apply(lambda x: self.user_id_map.get(x))
+        df_rating_test['movie_id_2'] = df_rating_test.movie_id.apply(lambda x: self.movie_id_map.get(x))
+
+        ratings = pd.DataFrame(self.predict_ratings())
+        preds = pd.melt(ratings.reset_index(), id_vars='index')
+        preds = preds.rename(columns={'index': 'user_id_2', 'variable': 'movie_id_2'})
+        preds.loc[preds['value'] < 1, 'value'] = 1
+        preds.loc[preds['value'] > 5, 'value'] = 5
+
+        mergeres = preds.merge(df_rating_test, on=['user_id_2', 'movie_id_2'])
+        rmse_v = self.compute_rmse(mergeres.rating, mergeres.value)
+        self.logger.info(f'Evaluated RMSE: {rmse_v}\nDataset: {dataset_path}')
+        return rmse_v
 
     def train(self, dataset_path, method_name, **kwargs):
         self._load_dataset(dataset_path)

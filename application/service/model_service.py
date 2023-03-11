@@ -17,6 +17,7 @@ class ModelService:
                 'n_latent_factors': 40
             }
             self.model.train(dataset_path=DATASET_BASE_PATH, **kwargs_svd)
+            self.model.evaluate(dataset_path=DATASET_BASE_PATH + '/ratings_train.dat')
 
     def warmup_model(self):
         self.model.warmup()
