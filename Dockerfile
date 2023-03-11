@@ -9,6 +9,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY . /app
 
+RUN mkdir -p /app/application/data
+
 EXPOSE 5000
 ENTRYPOINT ["python3"]
 CMD ["run.py"]
