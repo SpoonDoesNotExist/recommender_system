@@ -4,10 +4,10 @@ class InfoService:
 
     def get_credentials(self):
         return {
-            'credentials': 'c',
-            'docker_image_datetime': 'datetime',
-            'metrics': {
-                'datetime': 'd',
-                'results': 'r'
-            }
+            'Name': 'Eduard',
+            'Surname': 'Khusnutdinov',
+            'University':{
+                'Name': 'Tomsk State University',
+                'Grade': '3',
+            },
         }
