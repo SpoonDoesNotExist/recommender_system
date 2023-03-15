@@ -1,4 +1,4 @@
-from application.config import DATASET_BASE_PATH
+from application.config import DATASET_BASE_PATH, TRAIN_METRICS_PATH, TEST_METRICS_PATH
 from application.recommendation_model import My_Rec_Model
 
 
@@ -16,8 +16,13 @@ class ModelService:
                 'method_name': 'svd',
                 'n_latent_factors': 40
             }
-            self.model.train(dataset_path=DATASET_BASE_PATH, **kwargs_svd)
-            self.model.evaluate(dataset_path=DATASET_BASE_PATH + '/ratings_test.dat')
+            train_eval_metric = self.model.train(dataset_path=DATASET_BASE_PATH, **kwargs_svd)
+
+            test_path = DATASET_BASE_PATH + '/ratings_test.dat'
+            test_eval_metric = self.model.evaluate(dataset_path=test_path)
+            app.logger.info(f'Test RMSE: {test_eval_metric}\nDataset: {test_path}')
+
+            self._save_metrics(train_eval_metric, test_eval_metric)
 
     def warmup_model(self):
         self.model.warmup()
@@ -39,3 +44,9 @@ class ModelService:
     def get_recommendations(self, user_id, top_k):
         movie_names, similarity_values = self.model.predict(user_id, top_k)
         return movie_names, similarity_values
+
+    def _save_metrics(self, train_metrics, test_metrics):
+        with open(TRAIN_METRICS_PATH, 'w') as f:
+            f.write(train_metrics)
+        with open(TEST_METRICS_PATH, 'w') as f:
+            f.write(test_metrics)
