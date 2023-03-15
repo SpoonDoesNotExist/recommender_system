@@ -84,7 +84,6 @@ class My_Rec_Model:
 
         mergeres = preds.merge(df_rating_test, on=['user_id_2', 'movie_id_2'])
         rmse_v = self.compute_rmse(mergeres.rating, mergeres.value)
-        self.logger.info(f'Evaluated RMSE: {rmse_v}\nDataset: {dataset_path}')
         return rmse_v
 
     def train(self, dataset_path, method_name, **kwargs):
@@ -95,9 +94,12 @@ class My_Rec_Model:
 
         self.user_factors, self.item_factors = train_method(ratings, **kwargs)
 
-        self.evaluate(dataset_path=dataset_path + '/ratings_train.dat')
+        eval_metric = self.evaluate(dataset_path=dataset_path + '/ratings_train.dat')
+        self.logger.info(f'Train RMSE: {eval_metric}\nDataset: {dataset_path}')
+
         self._save(SAVE_PATH)
         self.logger.info(f"Train finished.")
+        return eval_metric
 
     def train_svd(self, ratings, n_latent_factors=40):
         self.logger.info(f"Start training (SVD)...")
