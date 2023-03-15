@@ -47,6 +47,6 @@ class ModelService:
 
     def _save_metrics(self, train_metrics, test_metrics):
         with open(TRAIN_METRICS_PATH, 'w') as f:
-            f.write(train_metrics)
+            f.write(str(train_metrics))
         with open(TEST_METRICS_PATH, 'w') as f:
-            f.write(test_metrics)
+            f.write(str(test_metrics))
